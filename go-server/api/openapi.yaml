@@ -1,0 +1,278 @@
+openapi: 3.1.0
+info:
+  title: Wallet Backend API
+  version: 0.1.0
+  description: |
+    API for a multi-approval wallet targeting medium and large expenses.
+servers:
+  - url: http://localhost:8080
+    description: Local development
+tags:
+  - name: health
+  - name: wallets
+  - name: transactions
+paths:
+  /health:
+    get:
+      tags: [health]
+      operationId: getHealth
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /wallets:
+    get:
+      tags: [wallets]
+      operationId: listWallets
+      summary: List wallets
+      responses:
+        '200':
+          description: List of wallets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Wallet'
+    post:
+      tags: [wallets]
+      operationId: createWallet
+      summary: Create a wallet
+      security:
+        - UserIdHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWalletRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Wallet'
+
+  /wallets/{walletID}:
+    parameters:
+      - name: walletID
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [wallets]
+      operationId: getWallet
+      summary: Get a wallet
+      responses:
+        '200':
+          description: Wallet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Wallet'
+        '404':
+          description: Not found
+
+  /wallets/{walletID}/transactions:
+    parameters:
+      - name: walletID
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [transactions]
+      operationId: listWalletTransactions
+      summary: List transactions for a wallet
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/TransactionStatus'
+      responses:
+        '200':
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+    post:
+      tags: [transactions]
+      operationId: createTransaction
+      summary: Create a transaction request for a wallet
+      security:
+        - UserIdHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+
+  /transactions/{txID}:
+    parameters:
+      - name: txID
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [transactions]
+      operationId: getTransaction
+      summary: Get a transaction by id
+      responses:
+        '200':
+          description: Transaction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '404':
+          description: Not found
+
+  /transactions/{txID}/approve:
+    parameters:
+      - name: txID
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      tags: [transactions]
+      operationId: approveTransaction
+      summary: Approve a transaction
+      security:
+        - UserIdHeader: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveTransactionRequest'
+      responses:
+        '200':
+          description: Updated transaction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+
+components:
+  securitySchemes:
+    UserIdHeader:
+      type: apiKey
+      in: header
+      name: X-User-Id
+
+  schemas:
+    Wallet:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        owners:
+          type: array
+          items:
+            type: string
+        dailyLimitCents:
+          type: integer
+          format: int64
+          minimum: 0
+        requiredApprovals:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, owners, dailyLimitCents, requiredApprovals, createdAt]
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+        walletId:
+          type: string
+        amountCents:
+          type: integer
+          format: int64
+          minimum: 1
+        memo:
+          type: string
+        createdBy:
+          type: string
+        approvers:
+          type: array
+          items:
+            type: string
+        status:
+          $ref: '#/components/schemas/TransactionStatus'
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, walletId, amountCents, createdBy, approvers, status, createdAt]
+
+    TransactionStatus:
+      type: string
+      enum: [pending, approved, rejected, executed]
+
+    CreateWalletRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        owners:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          uniqueItems: true
+        dailyLimitCents:
+          type: integer
+          format: int64
+          minimum: 0
+        requiredApprovals:
+          type: integer
+          minimum: 1
+      required: [name, owners, dailyLimitCents, requiredApprovals]
+
+    CreateTransactionRequest:
+      type: object
+      properties:
+        amountCents:
+          type: integer
+          format: int64
+          minimum: 1
+        memo:
+          type: string
+      required: [amountCents]
+
+    ApproveTransactionRequest:
+      type: object
+      properties:
+        comment:
+          type: string
+      additionalProperties: false

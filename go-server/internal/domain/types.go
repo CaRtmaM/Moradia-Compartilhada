@@ -6,22 +6,22 @@ import (
 
 // Wallet represents a spending wallet with threshold approvals
 type Wallet struct {
-	ID string
-	Name string
-	Owners []string
-	DailyLimitCents int64
-	RequiredApprovals int
-	CreatedAt time.Time
+	ID                 string    `json:"id"`
+	Name               string    `json:"name"`
+	Owners             []string  `json:"owners"`
+	DailyLimitCents    int64     `json:"dailyLimitCents"`
+	RequiredApprovals  int       `json:"requiredApprovals"`
+	CreatedAt          time.Time `json:"createdAt"`
 }
 
 // Transaction represents a spending request that may need approvals
 type Transaction struct {
-	ID string
-	WalletID string
-	AmountCents int64
-	Memo string
-	CreatedBy string
-	Approvers []string
-	Status string // pending, approved, rejected, executed
-	CreatedAt time.Time
+	ID          string    `json:"id"`
+	WalletID    string    `json:"walletId"`
+	AmountCents int64     `json:"amountCents"`
+	Memo        string    `json:"memo"`
+	CreatedBy   string    `json:"createdBy"`
+	Approvers   []string  `json:"approvers"`
+	Status      string    `json:"status"` // pending, approved, rejected, executed
+	CreatedAt   time.Time `json:"createdAt"`
 }
